@@ -1,0 +1,65 @@
+=======================================
+                SECTION
+=======================================
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '${DB_ROOT_PASSWD}';
+GRANT ALL PRIVILEGES ON ${WP_DB_NAME}.* TO '${DB_USER}'@'%';
+
+==Note==
+*.*
+
+First * refers to all databases
+Second * refers to all tables within those databases
+
+==Note==
+wp_db.*
+
+This refers to all tables within the wp_db database
+
+=======================================
+                SECTION
+=======================================
+
+==Note==
+mysql.user
+
+MariaDB comes with a default mysql database. This database contains 
+system tables, including the user table (mysql.user), which holds 
+user accounts and privileges.
+
+So even if the specific WordPress database (${WP_DB_NAME}) doesn't 
+exist yet, MariaDB comes with a default mysql database.
+This database contains system tables, including mysql.user, which 
+holds user accounts and privileges. So, even in a "fresh" MariaDB 
+installation, there are predefined users, including:
+    1. root (administrator account).
+    2. Anonymous users (with an empty username, depending on how MariaDB was installed)
+
+
+Removing Anonymous Users and Insecure Root Access:
+
+    Anonymous Users:    These accounts are sometimes created by default in a fresh MariaDB 
+                        installation to allow unauthenticated connections for testing or 
+                        debugging purposes. They pose a security risk and should always 
+                        be removed.
+
+                        DELETE FROM mysql.user WHERE User='';
+    
+    Non-local root Accounts:    By default, MariaDB might allow root connections from 
+                                non-local sources (e.g., over the network). This opens 
+                                a security vulnerability. The script ensures that root 
+                                access is restricted to localhost and removes any root 
+                                accounts that allow remote connections:
+
+                                DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+
+
+=======================================
+                SECTION
+=======================================
+Allowing the root user to connect from any host (%) can be a security risk, especially 
+if the password is weak. Anyone who knows the root password could try to connect from 
+anywhere.
+
+It is recommended to restrict remote root access to only specific IP addresses 
+or subnets (in our case, we limit root connection to localhost only), or use a 
+different user for remote access instead of root.

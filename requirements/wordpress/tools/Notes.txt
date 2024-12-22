@@ -1,0 +1,142 @@
+==============================================
+                SECTION
+==============================================
+What is WP-CLI?
+
+WP-CLI (WordPress Command Line Interface) is a powerful tool that allows 
+developers and administrators to perform various WordPress tasks directly 
+from the command line, bypassing the need for manual interactions with the 
+WordPress web interface.
+
+It can:
+    *   Download and Install WordPress Core:
+    *   Configure the WordPress Installation (by modifying the wp-config.php 
+        file to set database credentials db_name, db_user, db_pwd; except for 
+        this purpose, we did that manually by modifying the wp-config.php file 
+        directly; though WP-CLI commands can be used to do that as well)
+    *   Create Users and Set Roles
+    *   Manage Themes and Plugins
+    *   Enable Redis Cache (for the bonus part of this project)
+
+
+==============================================
+                SECTION
+==============================================
+
+What's the point of the --allow-root flag in [wp core download --allow-root] 
+part of our script?
+
+WP-CLI discourages running commands as root because:
+
+    *   Running as root can pose security risks if the command interacts 
+        with sensitive files or databases.
+
+    *   WordPress files and directories might end up being owned by root, 
+        which could cause permission issues when a non-root web server 
+        (like www-data or apache) tries to access or modify those 
+        files. So When WP-CLI runs as root, files it creates (e.g., 
+        WordPress core files) will often be owned by root. If 
+        your web server runs under a non-root user (like www-data), 
+        it might not have permission to access or modify those files. 
+        This leads to annoying permission errors like:
+
+The --allow-root flag overrides this safety measure, telling WP-CLI:
+"I know what I'm doing, go ahead and execute as root." Here is the 
+error we get if we do
+
+[wp core download] instead of [wp core download --allow-root]
+
+Error: YIKES! It looks like you're running this as root. You probably meant to run this as the user that your WordPress installation exists under.
+
+If you REALLY mean to run this as root, we won't stop you, but just bear in mind that any code on this site will then have full control of your server, making it quite DANGEROUS.
+
+If you'd like to continue as root, please run this again, adding this flag:  --allow-root
+
+If you'd like to run it as the user that this site is under, you can run the following to become the respective user:
+
+    sudo -u USER -i -- wp <command>
+
+
+==============================================
+                SECTION
+==============================================
+define( 'WP_ALLOW_REPAIR', true );
+
+This configuration line above was added to our wp-config.php in the MySQL settings section.
+
+When set to true, this constant allows you to repair and optimize your WordPress database directly from 
+the browser without needing to log into the WordPress admin dashboard. It’s particularly useful if your 
+WordPress site experiences database issues, like corruption or performance problems.
+
+It works by going to:
+http://yourdomain.com/wp-admin/maint/repair.php
+
+On this page, you will see options to:
+    *   Repair the database: Fixes any database corruption.
+    *   Repair and optimize the database: In addition to repairing, it also optimizes the database for 
+        better performance
+
+==============================================
+                SECTION
+==============================================
+exec "$PHP_FPM" -F would expand into /usr/sbin/php-fpm8.2 -F but what is the point of this -F flag? 
+
+Php-fpm is a process that is actively running waiting for nginx to forward HTTP requests that require 
+PHP scripts to run. So if we activate it by typing inusr/sbin/php-fpm8.2 (without the -F flag), it would 
+in fact launch and begin to listen for any requests forwarded to it from Nginx BUT IT WOULD DO SO WHILE 
+RUNNING IN THE BACKGROUND. The -F flag specifies that the process (php=fpm in this case) should run in 
+the foreground and not in the background. Without the -F, the process would be daemonized, aka running 
+in the background. So why do we need it to run in the foreground? If it weren't for this, then as soon 
+as the script is executed, the docker container will exit. That's just how they behave.
+
+When you run the php-fpm service without the -F flag, it daemonizes, meaning it detaches from the 
+terminal and runs in the background. So now, it doesn't directly block the terminal nor require 
+user interaction. However, in a Docker container, if the main process daemonizes, the container 
+will exit because Docker expects the container's main process to be in the foreground. So containers 
+expect the main process to run in the foreground because when that process ends, the container 
+also exits. A process running in the foreground occupies the terminal/session and actively keeps it 
+busy. It stays "visible" and blocks the session until it finishes or is stopped. Example: When you 
+run ping google.com in a terminal, the output keeps updating, and you can’t type anything else 
+because it’s running in the foreground. 
+
+For the Mariadb container, that process was [mariadbd --user=mysql"], it didn't have to explicitly be 
+run in the foreground, it automatically is run in the forground unlike php-fpm; but the point is, that 
+main process is what keeps the Mariadb container running without exiting.
+
+==============================================
+                SECTION
+==============================================
+
+What is this command doing?
+PHP_FPM=$(find /usr/sbin /usr/local/sbin /usr/bin /usr/local/bin -name 'php-fpm*' 
+                -type f -executable 2>/dev/null | sort | tail -n 1)
+
+This command is looking for (via the find linux command) the appropriate php-fpm 
+executable. What do we mean by appropriate? Well at the time of downloading/running 
+this Dockerfile, the php-fpm version could have varied. Right now we are at 8.2 so 
+if we hard code exec /usr/sbin/php-fpm8.2 -F but curl ended up downloading a later 
+version, then php-fpm8.2 would not be found, instead it would have been called php-fpm8.4 
+for instance. So the globbing php-fpm* is finding the appropriate php-fpm executable. 
+
+Now why do we need find? Why not just do [exec /usr/sbin/php-fpm*]. Well that is because 
+globbing in linux only expands things that match the expression WITHIN the current directory 
+only. So if we were in / (the root directory) and we execute /usr/sbin/php-fpm*, it would 
+expand into /usr/sbin/php-fpm only, because php-fpm8.2 is not in the root directory, it is 
+in /usr/sbin/ so it doesn't matter even if we put the absolute path, globbing is only relative 
+to the current directory we are in. So this is where find comes into play. With find, we enter 
+all the possible directories where the php-fpm executable could be in (most likely /usr/sbin/ 
+but still, to be safe search all possible directories where the executable could be listed), 
+and since find automatically enters these directories, we are able to set -name 'php-fpm*' 
+and the globbing would work correctly. 
+
+-type f -executable is a bit unneecessary since we are only looking in directories where an 
+executable should be found anyways, but this is to prevent it from detecting a file like 
+php-fpm.config for instance, which is not the binary file we want as we are looking for the 
+executable, but it still matches the expression php-fpm*. 2 >/dev/null is just there to not 
+clutter the output from stderr which could be triggered due to invalid permissions for instance. 
+Basically if an error is encountered, just direct that output to /dev/null and just let it get 
+"absorbed" there. 
+
+sort is just gonna sort the matches lexicographically in case multiple version of php-fpm were 
+found and piping the output to tail -n 1 would pick out the latest version since the biggest 
+number would have been listed at the bottom via sort.
