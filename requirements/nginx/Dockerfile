@@ -1,8 +1,8 @@
 FROM debian:bookworm
 
-RUN apt-get install -y nginx && apt-get install openssl -y
+RUN apt-get update && apt-get install -y nginx openssl
 
-COPY ./conf/nginx.conf /etc/nginx/nginx.conf
+COPY ./conf/server_block.conf /etc/nginx/conf.d/server_block.conf
 COPY ./tools/script.sh /script.sh
 
 ENTRYPOINT ["sh", "script.sh"]
