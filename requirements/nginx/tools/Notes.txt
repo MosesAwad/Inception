@@ -1,0 +1,65 @@
+====================================================================
+req -x509 -nodes -days 365
+====================================================================
+openssl req:
+    Starts the process of generating a certificate request or a self-signed certificate.
+
+-x509:
+    This flag tells OpenSSL to create a self-signed certificate rather than a 
+    certificate request (CSR).
+
+-nodes:
+    This stands for "no DES" (Data Encryption Standard).  Disables encryption on 
+    the private key, meaning no passphrase is required for use. Othweise, the SSL 
+    user (aka server admin) would be prompted for that passphrase when the server 
+    is launched or restarted so that the private key can be used.
+
+-days 365: 
+    Sets the certificate’s validity period to 365 days (1 year).
+
+====================================================================
+-newkey rsa:2048
+====================================================================
+-newkey:
+    This option tells OpenSSL to generate a new private key as part of the 
+    certificate creation process. It’s used when you want to create both a 
+    private key and a certificate in one step, rather than using an existing key.
+
+rsa:2048:
+    This specifies that the RSA algorithm should be used for the private key 
+    and that the key size should be 2048 bits.
+
+    RSA is a widely used encryption algorithm for generating public-private key pairs.
+    2048 bits is the size of the key, which determines the strength of the encryption. 
+    A larger key size (like 4096 bits) would provide stronger security but could be 
+    slower in terms of encryption/decryption operations. 2048 bits is generally 
+    considered strong enough for most uses and is commonly used.
+
+====================================================================
+-keyout /etc/ssl/private/mawad_selfsigned_private_key.key 
+====================================================================
+This specifies the location where the PRIVATE key will be saved.
+
+The PRIVATE key is used by the server for encryption and decryption during SSL/TLS c
+ommunication.
+
+====================================================================
+-out /etc/ssl/certs/mawad_selfsigned_cert.crt
+====================================================================
+This specifies the location where the certificate will be saved.
+
+The certificate contains the PUBLIC key and is used by the client to verify the 
+server’s identity.
+
+====================================================================
+ -subj "C=AE/L=Abu Dhabi/O=42AD/CN=mawad.42.fr"
+====================================================================
+This is known as the subject string. It defines the identity of the certificate 
+being created.In other words, it helps define the entity that the certificate 
+belongs to.
+
+C = country (code)
+L = locality (specific geographic area within a country ex: state, province, district, etc.)
+O = organization
+CN = common name (domain name)
+

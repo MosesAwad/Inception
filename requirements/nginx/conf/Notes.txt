@@ -1,0 +1,181 @@
+====================================================================
+listen 443 ssl;
+listen [:]:443 ssl;
+====================================================================
+listen 443 ssl: for IPv4 addresses. By default, this applies to all network interfaces.
+                So there is no need to say listen 0.0.0.0:443 ssl.
+
+listen [::]:443 ssl:    for IPv6 addresses. Both are needed to handle traffic from 
+                        both IPv4 and IPv6 clients, ensuring the server can accept 
+                        secure connections from any client, regardless of whether 
+                        they're using IPv4 or IPv6.
+
+====================================================================
+server_name mawad.42.fr www.mawad.42.fr;
+====================================================================
+The server_name directive in Nginx specifies the domain names or subdomains that the 
+server block should respond to.
+
+mawad.42.fr: This is the base domain name. The server block will handle requests 
+addressed to this domain. www.mawad.42.fr: This is the subdomain with the www prefix. 
+The server block will also handle requests addressed to this subdomain.
+
+Early on, www was commonly used to signify that a domain was hosting a website 
+(e.g., www.example.com). It was shorthand for "World Wide Web." This made sense in the 
+1990s when services like FTP (ftp.example.com) and mail (mail.example.com) were common, 
+and thus each would have been a subdomain of the base domain example.com. Universities, 
+businesses, and ISPs often hosted multiple services under the same domain.
+
+Today though, most services are consolidated under the www. subdomain or even the bare 
+domain (e.g., example.com). The separation into dedicated subdomains for services like 
+ftp. and mail. has largely fallen out of favor. Here's why this shift happened and how 
+things are structured today:
+
+Web Interfaces for Everything: Modern applications consolidate most services into web-based 
+interfaces. For instance:
+
+    File transfer is often done through web interfaces instead of FTP (e.g., Dropbox, Google Drive).
+
+    Email is accessed via webmail (e.g., Gmail, Outlook.com) rather than separate mail clients 
+    pointing to mail.example.com.
+
+With everything moving to HTTP/HTTPS, the need for distinct subdomains has diminished.
+
+====================================================================
+ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
+
+ssl_protocols TSLv1.2 TLSv1.3;
+====================================================================
+This Nginx configuration uses TLS, not SSL. Here's why:
+
+    SSL vs. TLS:
+        SSL (Secure Sockets Layer) is an older protocol for securing communications. It's largely 
+        deprecated in favor of TLS (Transport Layer Security), which is more secure. Modern web 
+        servers, including Nginx, typically use TLS instead of SSL, even though the term "SSL" 
+        is often used colloquially to refer to TLS.
+
+    Configuration Details:
+        The line ssl_protocols TLSv1.2 TLSv1.3; explicitly specifies that only TLS 1.2 and TLS 1.3 
+        are allowed as the communication protocol. No SSL protocols (such as SSL 2.0 or SSL 3.0) 
+        are included.
+
+    Terminology in Nginx:
+        The ssl_certificate and ssl_certificate_key directives reference files used for securing 
+        connections. The use of the term "ssl" here is historical; these directives work with both 
+        SSL and TLS.
+
+    Summary: Despite the use of the term "ssl" in directives like ssl_certificate, the configuration 
+    enforces the use of TLS (specifically TLS 1.3). So, your Nginx setup is using TLS, not SSL.
+
+    Similarly, OpenSSL works with both SSL and TLS. When generating a certificate with OpenSSL, 
+    it's still fully compatible with TLS, which is why certificates that are created with OpenSSL 
+    (even with SSL in the name) can be used in a TLS setup.
+
+====================================================================
+location ~ [^/]\.php(/|$)
+====================================================================
+This line defines a location block in Nginx that processes PHP files:
+
+    location: This is a configuration block that tells Nginx how to handle requests for certain URLs.
+
+    ~:  The tilde (~) indicates that the location block will be processed using a case-sensitive 
+        regular expression.
+
+    [^/]\.php(/|$): This regular expression matches URLs that are requesting PHP files.
+        [^/]:   This part ensures that the string doesn't contain a / before the .php. This 
+                prevents matching requests like /folder/somefile.php (it would only match 
+                URLs directly ending with .php).
+        
+        \.php: Matches .php literally.
+        
+        (/|$):  This part ensures the .php file is followed either by a / (indicating a 
+                directory) or the end of the string ($), allowing both /file.php and 
+                /file.php/ to match.
+
+====================================================================
+include fastcgi_params;
+====================================================================
+    This line includes a file, typically located in the Nginx configuration directory 
+    (e.g., /etc/nginx/fastcgi_params), that defines standard FastCGI parameters. These 
+    parameters ensure compatibility and proper communication between Nginx and the 
+    FastCGI server.
+    
+    Example of included parameters:
+
+    FASTCGI_HOST = "127.0.0.1"
+    FASTCGI_PORT = "9000"
+
+    The file generally contains mappings like SCRIPT_NAME, QUERY_STRING, REQUEST_METHOD, 
+    etc., which are needed for passing request data to the backend.
+
+====================================================================
+fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+====================================================================
+    This defines a custom FastCGI parameter, SCRIPT_FILENAME. SCRIPT_FILENAME is mandatory 
+    for PHP-FPM because it directly specifies the script's location.
+
+    It tells the FastCGI server the full path to the requested PHP script that should 
+    be executed.
+        $document_root: The root directory of your site as defined in your Nginx configuration.
+        $fastcgi_script_name: The path of the script relative to the document_root.
+
+    Example: If $document_root is /var/www/html and $fastcgi_script_name is /index.php, then 
+    SCRIPT_FILENAME will resolve to /var/www/html/index.php.
+
+====================================================================
+fastcgi_param PATH_INFO $fastcgi_path_info;
+====================================================================
+    This sets the PATH_INFO parameter, which contains extra path information provided 
+    after the script name in the URL.
+
+    It's used by some PHP applications to determine routing or additional request data.
+
+    Example: For a URL like /index.php/some/path, PATH_INFO would be /some/path.
+
+=======================================
+                SECTION
+=======================================
+variables such as $document_root, $fastcgi_script_name, and $fastcgi_path_info are known as 
+Nginx runtime variables. These are defined and populated dynamically by Nginx during the 
+request processing.
+
+=======================================
+                SECTION
+=======================================
+What is OpenSSL?
+
+OpenSSL is an open-source software library that provides tools and implementations for secure 
+communications over computer networks. It is widely used to implement the SSL (Secure Sockets 
+Layer) and TLS (Transport Layer Security) protocols, which are essential for encrypting data 
+transferred over the internet.
+
+Key Features:
+
+    Cryptographic Functions:
+        Symmetric encryption (e.g., AES, DES).
+        Asymmetric encryption (e.g., RSA, DSA).
+        Hashing algorithms (e.g., SHA-256, MD5).
+        Key generation and management.
+
+    SSL/TLS Support:
+        Facilitates secure communication through HTTPS.
+        Used for securing web servers, email, VPNs, and more.
+
+    Command-Line Tools:
+        Generate and manage private keys and certificates.
+        Perform encryption, decryption, and signing.
+        Test SSL/TLS connections.
+
+    Library for Developers:
+        Provides APIs in C and other languages to integrate cryptographic and SSL/TLS functions 
+        into software.
+
+Common Uses:
+
+    Web Servers: OpenSSL is commonly used to enable HTTPS (e.g., in Apache and Nginx).
+    Certificate Management: Creating and managing SSL/TLS certificates.
+    Secure Applications: Integrating encryption and secure protocols into custom applications.
+
+OpenSSL is highly regarded for its flexibility and extensive support, but it requires careful 
+configuration to ensure robust security.
