@@ -29,6 +29,12 @@ sed -i -r "s/user/$WP_DB_USER/1" wp-config.php
 sed -i -r "s/pswd/$WP_DB_PASSWD/1" wp-config.php
 sed -i -r "s/localhost/mariadb/1" wp-config.php
 
+sed -i 's/^listen = .*/listen = 0.0.0.0:9000/' /etc/php/8.2/fpm/pool.d/www.conf
+
+wp core install --url=mawad.42.fr --title=$WP_TITLE \
+                --admin_user=$WP_ADMIN_USR --admin_password=$WP_ADMIN_PASSWD \
+                --admin_email=$WP_ADMIN_EMAIL --skip-email --allow-root
+
 
 # Find any PHP-FPM executable, sorted by version (latest version last)
 PHP_FPM=$(find /usr/sbin /usr/local/sbin /usr/bin /usr/local/bin -name 'php-fpm*' -type f -executable 2>/dev/null | sort | tail -n 1)
