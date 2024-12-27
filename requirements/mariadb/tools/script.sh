@@ -1,10 +1,5 @@
 #!/bin/bash
 
-MARIA_DB_NAME=wp_db
-MARIA_DB_ROOT_PASSWD=r123
-MARIA_DB_USER=wp_user
-MARIA_DB_USER_PASSWD=wp123
-
 if [ ! -d "/var/lib/mysql/${MARIA_DB_NAME}" ]; then
 
     cat << HDOC_DELIM > /tmp/db.sql

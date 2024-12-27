@@ -1,16 +1,5 @@
 #!bin/bash
 
-# These are the credentials that WP will use to query the MariaDB
-WP_DB_NAME=wp_db
-WP_DB_USER=wp_user
-WP_DB_PASSWD=wp123
-WP_TITLE=Inception_Zone
-
-# These are separate credentials local to WP only and they are used for accessing & managing the WP website
-WP_ADMIN_USR=sonic
-WP_ADMIN_PASSWD=sonic123
-WP_ADMIN_EMAIL=sonic@hedgehogmail.com
-
 mkdir -p /var/www/html
 cd /var/www/html
 rm -rf *
