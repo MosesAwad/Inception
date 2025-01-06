@@ -1,0 +1,213 @@
+============================================================================
+sed -i "s|bind 127.0.0.1|#bind 127.0.0.1|g"  /etc/redis/redis.conf
+============================================================================
+If no "bind" configuration directive is specified, Redis listens
+for connections from all available network interfaces on the host machine.
+That's why we comment the bind 127.0.0.1 that is present in the redis.conf 
+file. Otherwise, the Redis server would only listen for connections coming 
+from localhost, which is not what we want. That is because WordPress, whose 
+supposed to be interacting with the redis server, is on another container.
+
+Redis does issue a warning saying the following:
+If the computer running Redis is directly exposed to the internet, binding to 
+all the interfaces is dangerous and will expose the instance to everybody on 
+the internet.
+
+What they mean is if the server is directly exposed to the internet, it can 
+potentially accept connections from any device on the internet, making the Redis 
+instance accessible to anyone who knows its IP address and port. If the server 
+is running on a public-facing IP, binding Redis to all interfaces (0.0.0.0) 
+makes it accessible to anyone with the server's IP address, without any 
+firewall restrictions.
+
+But for us, that's not a problem. Why? Because we are using Docker containers.
+Isolation by Containers: Containers typically provide network isolation, meaning 
+Redis will only be accessible to other containers within the same network unless 
+explicitly exposed outside. If Redis is running in a private network within Docker 
+(or another containerization tool), it should only be accessible from other services 
+like WordPress, Nginx, and MariaDB, not from the outside world.
+
+Public Access (Outside Docker Network): When an external user tries to visit your 
+site (using HTTPS over port 443), they are essentially connecting to your server's 
+public IP or domain name, and Nginx listens on that port. This traffic hits the 
+host machine's network interface first. The server then routes this traffic into 
+the Nginx container (since Nginx is running in a container).
+
+Nginx Container: Once the connection reaches Nginx, Nginx handles the incoming 
+request (for example, serving the WordPress site, proxying to MariaDB, etc.). 
+The traffic stays within the context of the Docker network that the Nginx container 
+is part of, which in your case is the "inception" network.
+
+Docker Network: Containers like Nginx, WordPress, and others that are part of the 
+inception Docker network can communicate with each other directly. For example, 
+Nginx might forward internal requests to a WordPress container or communicate with 
+Redis or MariaDB.
+
+Key Points to Clarify:
+External Connection: The external user is not directly connecting to the Docker 
+network, but rather to your server's public interface. The traffic is only routed 
+into the Docker container through port mapping. So, the user sees your server's 
+external IP (or domain), and Nginx inside the container is responsible for routing 
+that traffic.
+
+Internal Docker Network: The containers within the "inception" network can talk 
+to each other internally without exposing themselves to the outside world, as long 
+as they don’t have ports mapped to the host machine (outside the Docker network).
+
+Security & Isolation: Even though Nginx is in a container, once the request enters 
+the Docker network, it’s only accessible by containers that Nginx is allowed to 
+communicate with. If Nginx is configured securely and only forwards traffic to 
+appropriate internal services, this limits any attack surface.
+
+So, are external users connecting to your Docker network? Technically, yes, but only 
+indirectly. They connect to Nginx via port 443, and Nginx handles requests within your 
+Docker environment, forwarding them to other containers (like WordPress or MariaDB) on 
+the internal "inception" network.
+
+To Sum It Up:
+No direct external access to the Docker network itself; the connection goes through Nginx.
+Nginx acts as the bridge between the external world (port 443) and your internal Docker network.
+Proper isolation between services like Redis, MariaDB, and WordPress within the Docker network 
+ensures they aren't exposed to external users unless you intentionally configure them to be.
+
+
+============================================================================
+sed -i "s|# maxmemory <bytes>|maxmemory 256mb|g"  /etc/redis/redis.conf 
+============================================================================
+The maxmemory 256mb directive sets the maximum amount of memory Redis is allowed to use. Once 
+it exceeds 256MB, it will start evicting data based on the configured eviction policy.
+
+
+=================================================================================================
+sed -i "s|# maxmemory-policy noeviction|maxmemory-policy allkeys-lru|g" /etc/redis/redis.conf
+=================================================================================================
+The maxmemory-policy allkeys-lru directive specifies the eviction policy and sets it to the 
+allkeys-lru option. With this option, Redis will use the Least Recently Used (LRU) algorithm 
+to remove the least recently accessed keys when it reaches the memory limit. Here are the 
+other options:
+
+# volatile-lru -> Evict using approximated LRU, only keys with an expire set.
+# allkeys-lru -> Evict any key using approximated LRU.
+# volatile-lfu -> Evict using approximated LFU, only keys with an expire set.
+# allkeys-lfu -> Evict any key using approximated LFU.
+# volatile-random -> Remove a random key having an expire set.
+# allkeys-random -> Remove a random key, any key.
+# volatile-ttl -> Remove the key with the nearest expire time (minor TTL)
+# noeviction -> Don't evict anything, just return an error on write operations.
+
+The default one is noeviction.
+
+
+============================================================================
+redis-server --protected-mode no
+============================================================================
+Protected mode is a security measure that prevents Redis from being exposed to 
+the outside world (i.e., it binds to the local loopback address only, typically 
+127.0.0.1), unless explicitly configured otherwise.
+
+When Redis is started in protected mode (which is the default), it will only 
+accept connections from localhost unless you configure it to bind to other 
+interfaces. The --protected-mode no flag disables this feature, allowing 
+Redis to accept connections from any IP address, provided the proper network 
+settings (bind and port) are configured. As mentioned earlier, WordPress, whose 
+supposed to be interacting with the redis server, is on another container.
+
+
+==========================================================================================
+How to Verify That The WordPress Container Successfully Connected to The Redis Container?
+==========================================================================================
+Option 1:
+    docker exec -it redis redis-cli keys '*'
+
+    Observe the output, if you see keys, then you have successfully connected.
+
+Option 2:
+    docker exec -it wordpress bash
+    apt-get update && apt-get install redis-tools
+    redis-cli -h redis -p 6379 ping
+
+    If you get PONG, it means the WordPress container successfully connected to the Redis container.
+
+
+============================================================================
+How does Redis handle data, does it need a volume?
+============================================================================
+There have been cases where 42 students have mistakenly mapped the wordpress 
+volume to /var/www/html in the Redis container. This doesn't make much sense 
+because Redis doesn’t need the WordPress data.
+
+Redis is an in-memory data store, meaning it stores its data in RAM. When the 
+container stops or is removed, the data is lost because it's not being saved 
+to disk. Since we're using Redis purely for temporary data storage (such as 
+caching or session management), we do not need to persist the data when 
+the container stops. In this case, the data is considered "ephemeral," meaning 
+it's transient and will disappear once the container is stopped or restarted.
+
+Caching:
+    Redis could be used to store frequently accessed data temporarily (e.g., 
+    session data, API responses, etc.). If Redis restarts, it's not a big 
+    deal because the cached data can be regenerated or fetched again.
+
+Session Storage:
+    When used for session management, Redis can store session data for active 
+    users, but if the container restarts, users will be logged out, and their 
+    session data will be lost. This is usually acceptable because session data 
+    can be re-established once the service is back up.
+
+We are opting for the caching option and in this case, we don’t need a volume 
+because the data can be discarded when the container stops. The Redis container 
+will just use its internal memory for storage.
+
+
+============================================================================
+Extra Info About Caching
+============================================================================
+Caching is typically session-based in many use cases, but it can also be persistent 
+across sessions, depending on how it's configured. Let's break down both possibilities:
+
+1. Session-Based Caching:
+    Short-term Data:
+        By default, caching is often used to store data that is valid for a single session. 
+        For example, when a user logs in, their session data (like authentication tokens, 
+        user preferences, or recently viewed items) may be stored in a cache. This data is 
+        only valid as long as the session is active.
+
+    Expiration:
+        Once the session expires (or the user logs out), the cached data is typically cleared.
+        
+    Example:
+        If you're using Redis for session storage (like storing user login sessions), once the 
+        session is over, the cache (containing that session information) would typically be 
+        discarded.
+
+2. Persistent Caching Across Sessions:
+    Long-term Data:
+        In some scenarios, caching can also be used to persist data across multiple sessions. This 
+        is often achieved using persistent storage options like Redis' AOF (Append-Only File) or 
+        RDB (snapshotting) features.
+
+    Not Just for One Session:
+        In this case, the cache stores data (e.g., database query results or frequently accessed 
+        content) in such a way that it can survive beyond the current session and still be 
+        available across future sessions.
+
+    Example:
+        A product catalog or frequently accessed API responses might be cached across 
+        different user sessions so that they don’t have to be fetched again from the original source 
+        each time a user accesses them, speeding up the app’s performance for returning users. 
+        So what this means is when a user requests product details, the server queries the database 
+        and caches the result. If another user requests the same product details, the server serves 
+        the cached data instead of querying the database again. This type of caching improves performance 
+        across the entire application by reducing redundant database or API calls for common data. Basically, 
+        data is cached at the application level and is independent of individual users. This is ideal for 
+        static or semi-static data like product catalogs, blog posts, or frequently accessed API responses.
+
+3. Browser Caching (Client-Side Caching):
+    In the case of web applications, browsers often cache certain assets (like images, stylesheets, 
+    or scripts) locally on the user's machine. This caching is typically persistent across multiple 
+    sessions until the cache expires or is cleared by the user or server.
+
+    Example:
+        When a user visits your site for the second time, images or scripts that were previously 
+        cached by the browser can be loaded instantly without needing to be fetched again from 
+        the server.
