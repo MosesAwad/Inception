@@ -9,8 +9,10 @@ COMPOSE_FILE = srcs/docker-compose.yml
 # Data directory path (as specified in the subject)
 DATA_PATH = /home/$(USER)/data
 
+CONTAINER_NAME = nginx
+
 # Target names
-all: setup build up
+all: setup build up update-hosts
 
 # Create necessary directories and setup environment
 setup:
@@ -59,5 +61,17 @@ status:
 # Show container logs
 logs:
 	@docker compose -f $(COMPOSE_FILE) logs
+
+# Update /etc/hosts on host machine to point mawad.42.fr and www.mawad.42.fr to container's IP
+update-hosts:
+	@printf "$(GREEN)Updating /etc/hosts with container's IP for mawad.42.fr and www.mawad.42.fr...$(RESET)\n"
+	@IP=$$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(CONTAINER_NAME)) && \
+		if grep -q "mawad.42.fr" /etc/hosts; then \
+			sudo sed -i "s/^.*mawad.42.fr$$/$$IP mawad.42.fr $$IP www.mawad.42.fr/" /etc/hosts; \
+			printf "$(GREEN)Updated mawad.42.fr and www.mawad.42.fr entries in /etc/hosts.$(RESET)\n"; \
+		else \
+			echo "$$IP mawad.42.fr $$IP www.mawad.42.fr" | sudo tee -a /etc/hosts; \
+			printf "$(GREEN)Added mawad.42.fr and www.mawad.42.fr entries to /etc/hosts.$(RESET)\n"; \
+		fi
 
 .PHONY: all setup build up down clean fclean re status logs

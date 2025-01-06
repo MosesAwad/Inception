@@ -63,3 +63,13 @@ services:
     networks:
       - inception
     restart: always
+
+  redis:
+   container_name: redis
+   build: ./requirements/bonus/redis
+   image: redis-image
+   depends_on:
+    - wordpress
+   networks:
+     - inception
+   restart: always

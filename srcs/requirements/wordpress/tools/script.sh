@@ -24,6 +24,9 @@ wp core install --url=mawad.42.fr --title=$WP_TITLE \
                 --admin_user=$WP_ADMIN_USR --admin_password=$(cat $WP_ADMIN_PASSWD) \
                 --admin_email=$WP_ADMIN_EMAIL --skip-email --allow-root
 
+wp plugin install redis-cache --activate --allow-root
+
+wp redis enable --allow-root
 
 # Find any PHP-FPM executable, sorted by version (latest version last)
 PHP_FPM=$(find /usr/sbin /usr/local/sbin /usr/bin /usr/local/bin -name 'php-fpm*' -type f -executable 2>/dev/null | sort | tail -n 1)
