@@ -140,3 +140,13 @@ Basically if an error is encountered, just direct that output to /dev/null and j
 sort is just gonna sort the matches lexicographically in case multiple version of php-fpm were 
 found and piping the output to tail -n 1 would pick out the latest version since the biggest 
 number would have been listed at the bottom via sort.
+
+==============================================
+                SECTION
+==============================================
+
+    wp plugin install redis-cache --activate --allow-root
+    wp redis enable --allow-root
+
+This installs and enables the redis object cache plugin for wordpress from the wp-cli and it 
+is necessary for WordPress to be able to interact with the Redis container.

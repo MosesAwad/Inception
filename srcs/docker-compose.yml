@@ -73,3 +73,21 @@ services:
    networks:
      - inception
    restart: always
+
+  ftp:
+   container_name: ftp
+   build: ./requirements/bonus/ftp
+   image: ftp-image
+   ports:
+    - "21:21"
+    - "10000-10005:10000-10005"
+   depends_on:
+    - wordpress
+   volumes:
+    - ../secrets:/run/secrets:ro
+    - wordpress:/home/${FTP_USER}/ftp/files
+   env_file:
+    - .env
+   networks:
+    - inception
+   restart: always
