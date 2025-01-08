@@ -91,3 +91,15 @@ services:
    networks:
     - inception
    restart: always
+  
+  adminer:
+   container_name: adminer
+   build: ./requirements/bonus/adminer
+   image: adminer-image
+   ports:
+    - "8080:8080"
+   depends_on:
+    - mariadb
+   networks:
+    - inception
+   restart: always
