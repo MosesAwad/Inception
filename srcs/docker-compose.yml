@@ -103,3 +103,13 @@ services:
    networks:
     - inception
    restart: always
+  
+  website:
+   container_name: website
+   build: ./requirements/bonus/website
+   image: website-image
+   ports:
+    - "80:80"
+   networks:
+    - inception
+   restart: always
