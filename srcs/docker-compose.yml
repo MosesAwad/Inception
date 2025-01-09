@@ -113,3 +113,17 @@ services:
    networks:
     - inception
    restart: always
+
+  portainer:
+   container_name: portainer
+   build: ./requirements/bonus/portainer
+   image: portainer-image
+   ports:
+    - "9000:9000"
+    - "9443:9443"
+   volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - /home/$USER/data/portainer:/data
+   networks:
+    - inception
+   restart: always
