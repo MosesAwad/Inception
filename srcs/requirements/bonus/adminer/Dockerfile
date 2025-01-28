@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM debian:bullseye
 
 RUN apt-get update -y && apt-get install -y wget php php-mysql
 

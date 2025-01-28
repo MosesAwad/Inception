@@ -18,7 +18,7 @@ sed -i -r "s/user/$WP_DB_USER/1" wp-config.php
 sed -i -r "s/pswd/$(cat $WP_DB_PASSWD)/1" wp-config.php
 sed -i -r "s/localhost/mariadb/1" wp-config.php
 
-sed -i 's/^listen = .*/listen = 0.0.0.0:9000/' /etc/php/8.2/fpm/pool.d/www.conf
+sed -i 's/^listen = .*/listen = 0.0.0.0:9000/' /etc/php/7.4/fpm/pool.d/www.conf
 
 wp core install --url=mawad.42.fr --title=$WP_TITLE \
                 --admin_user=$WP_ADMIN_USR --admin_password=$(cat $WP_ADMIN_PASSWD) \
@@ -27,6 +27,9 @@ wp core install --url=mawad.42.fr --title=$WP_TITLE \
 wp plugin install redis-cache --activate --allow-root
 
 wp redis enable --allow-root
+
+mkdir -p /run/php
+chown www-data:www-data /run/php
 
 # Find any PHP-FPM executable, sorted by version (latest version last)
 PHP_FPM=$(find /usr/sbin /usr/local/sbin /usr/bin /usr/local/bin -name 'php-fpm*' -type f -executable 2>/dev/null | sort | tail -n 1)

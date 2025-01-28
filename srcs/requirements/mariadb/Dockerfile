@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM debian:bullseye
 
 # -y flag tells apt-get to assume "yes" for all prompts and continue the operation without waiting for your manual input.
 RUN apt-get update -y && apt-get install mariadb-server -y
