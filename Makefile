@@ -12,13 +12,14 @@ DATA_PATH = /home/$(USER)/data
 CONTAINER_NAME = nginx
 
 # Target names
-all: setup build up update-hosts
+all: setup build up
 
 # Create necessary directories and setup environment
 setup:
 	@printf "$(GREEN)Creating data directories...$(RESET)\n"
 	@mkdir -p $(DATA_PATH)
 	@mkdir -p $(DATA_PATH)/wordpress
+	@mkdir -p $(DATA_PATH)/ssl-certs
 	@mkdir -p $(DATA_PATH)/mariadb
 	@printf "$(GREEN)Setup complete!$(RESET)\n"
 

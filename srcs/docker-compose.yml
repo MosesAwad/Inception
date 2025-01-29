@@ -13,6 +13,12 @@ volumes:
         type: none
         o: bind
         device: /home/${USER}/data/mariadb
+  ssl-certs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/ssl-certs
 
 networks:
   inception:
@@ -29,6 +35,7 @@ services:
       - wordpress
     volumes:
       - wordpress:/var/www/html
+      - ssl-certs:/etc/ssl
       - ../secrets:/run/secrets:ro
     networks:
       - inception
@@ -102,7 +109,7 @@ services:
     - mariadb
    networks:
     - inception
-   restart: always
+   restart: on-failure
   
   website:
    container_name: website
@@ -126,4 +133,4 @@ services:
     - /home/$USER/data/portainer:/data
    networks:
     - inception
-   restart: always
+   restart: on-failure
