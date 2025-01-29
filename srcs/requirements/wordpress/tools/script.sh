@@ -2,6 +2,8 @@
 
 mkdir -p /var/www/html
 cd /var/www/html
+chown -R www-data:www-data /var/www/html
+chmod -R 755 /var/www/html
 
 curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
 chmod +x wp-cli.phar
@@ -19,6 +21,7 @@ if ! wp core is-installed --allow-root; then
 
     # Configure wp-config.php
     mv /wp-config.php /var/www/html/wp-config.php
+    chmod 644 /var/www/html/wp-config.php
     sed -i -r "s/db1/$WP_DB_NAME/1" wp-config.php
     sed -i -r "s/user/$WP_DB_USER/1" wp-config.php
     sed -i -r "s/pswd/$(cat $WP_DB_PASSWD)/1" wp-config.php
