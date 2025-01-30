@@ -17,6 +17,10 @@ RUN mkdir -p /var/run/apache2 /var/log/apache2
 # Copy website content to Apache's document root
 COPY ./content/* /var/www/html/
 
+# Give www-data user permission to read /var/www/html
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html
+
 # Set the ServerName to avoid warnings
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
